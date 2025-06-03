@@ -3,8 +3,8 @@ services:
     name: stg44-discord-landing
     env: node
     plan: free
-    buildCommand: npm install
-    startCommand: NODE_ENV=production tsx server/prod.ts
+    buildCommand: npm install --production=false
+    startCommand: node server/index.js
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
