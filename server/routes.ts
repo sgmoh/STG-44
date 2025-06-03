@@ -4,6 +4,26 @@ import { storage } from "./storage";
 import { insertVisitSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Health check endpoint for uptime monitoring
+  app.get("/health", async (req, res) => {
+    try {
+      const totalVisits = await storage.getTotalVisits();
+      res.status(200).json({
+        status: "healthy",
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        totalVisits,
+        environment: process.env.NODE_ENV || "development"
+      });
+    } catch (error) {
+      res.status(503).json({
+        status: "unhealthy",
+        timestamp: new Date().toISOString(),
+        error: "Service unavailable"
+      });
+    }
+  });
+
   // Track a new visit
   app.post("/api/visits", async (req, res) => {
     try {

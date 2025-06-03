@@ -8,6 +8,8 @@ export interface IStorage {
   getVisits(): Promise<Visit[]>;
   getVisitsByDateRange(days: number): Promise<Visit[]>;
   getTotalVisits(): Promise<number>;
+  recordUptime(): Promise<void>;
+  getUptimeStats(): Promise<{ uptime: number; lastCheck: Date }>;
 }
 
 export class MemStorage implements IStorage {
@@ -43,8 +45,18 @@ export class MemStorage implements IStorage {
   async createVisit(insertVisit: InsertVisit): Promise<Visit> {
     const id = this.currentVisitId++;
     const visit: Visit = { 
-      ...insertVisit, 
-      id, 
+      id,
+      ip: insertVisit.ip || null,
+      country: insertVisit.country || null,
+      city: insertVisit.city || null,
+      region: insertVisit.region || null,
+      countryCode: insertVisit.countryCode || null,
+      timezone: insertVisit.timezone || null,
+      browser: insertVisit.browser || null,
+      platform: insertVisit.platform || null,
+      language: insertVisit.language || null,
+      userAgent: insertVisit.userAgent || null,
+      referrer: insertVisit.referrer || null,
       visitedAt: new Date() 
     };
     this.visits.set(id, visit);

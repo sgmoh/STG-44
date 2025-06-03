@@ -69,20 +69,49 @@ export default function Home() {
 
       let locationInfo: any = {};
       
-      // Get IP and location info from a free service
+      // Get IP and location info - try multiple services for accuracy
       try {
-        const response = await fetch('https://ipapi.co/json/');
-        const ipData = await response.json();
+        // First try ipapi.co
+        let response = await fetch('https://ipapi.co/json/');
+        let ipData = await response.json();
+        
+        // If ipapi.co fails or returns invalid data, try backup service
+        if (!ipData.ip || ipData.error) {
+          response = await fetch('https://api.ipify.org?format=json');
+          const ipifyData = await response.json();
+          
+          // Get detailed location from ip-api.com
+          const locationResponse = await fetch(`http://ip-api.com/json/${ipifyData.ip}`);
+          const locationData = await locationResponse.json();
+          
+          ipData = {
+            ip: ipifyData.ip,
+            city: locationData.city,
+            region: locationData.regionName,
+            country_name: locationData.country,
+            country_code: locationData.countryCode,
+            timezone: locationData.timezone
+          };
+        }
+        
         locationInfo = {
           ip: ipData.ip,
           city: ipData.city,
-          region: ipData.region,
-          country: ipData.country_name,
-          countryCode: ipData.country_code,
+          region: ipData.region || ipData.regionName,
+          country: ipData.country_name || ipData.country,
+          countryCode: ipData.country_code || ipData.countryCode,
           timezone: ipData.timezone
         };
       } catch (error) {
         console.log('Could not fetch IP/location data:', error);
+        // Fallback to basic detection
+        try {
+          const fallbackResponse = await fetch('https://httpbin.org/ip');
+          const fallbackData = await fallbackResponse.json();
+          locationInfo = { ip: fallbackData.origin };
+        } catch (fallbackError) {
+          console.log('All IP detection methods failed:', fallbackError);
+        }
       }
 
       // Prepare visit data
