@@ -3,8 +3,8 @@ services:
     name: stg44-discord-landing
     env: node
     plan: free
-    buildCommand: npm install && npm run build
-    startCommand: npm start
+    buildCommand: npm install
+    startCommand: NODE_ENV=production tsx server/prod.ts
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
@@ -15,4 +15,3 @@ services:
         value: https://discord.com/api/webhooks/1379160515175252049/0bdHg0JbH3d1POYn_cDS-XZRwtbY1AJv2thwO2AVXgt_V19Y0aRgyLA-UWn1_O8SFTDf
     autoDeploy: true
     region: oregon
-    preDeployCommand: echo "Starting deployment..."
