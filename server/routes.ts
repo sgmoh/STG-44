@@ -7,12 +7,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Health check endpoint for uptime monitoring
   app.get("/health", async (req, res) => {
     try {
+      await storage.recordUptime();
       const totalVisits = await storage.getTotalVisits();
+      const uptimeStats = await storage.getUptimeStats();
+      
       res.status(200).json({
         status: "healthy",
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
         totalVisits,
+        uptimeHours: uptimeStats.uptime,
+        lastCheck: uptimeStats.lastCheck,
         environment: process.env.NODE_ENV || "development"
       });
     } catch (error) {
@@ -24,10 +29,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Uptime statistics endpoint
+  app.get("/api/uptime", async (req, res) => {
+    try {
+      const uptimeStats = await storage.getUptimeStats();
+      res.json({
+        uptime: uptimeStats.uptime,
+        lastCheck: uptimeStats.lastCheck,
+        serverStatus: "online"
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get uptime statistics" });
+    }
+  });
+
   // Track a new visit
   app.post("/api/visits", async (req, res) => {
     try {
-      const visitData = insertVisitSchema.parse(req.body);
+      const clientData = insertVisitSchema.parse(req.body);
+      
+      // Get real IP address from headers (more accurate for deployed apps)
+      const realIP = req.headers['x-forwarded-for'] || 
+                    req.headers['x-real-ip'] || 
+                    req.connection.remoteAddress || 
+                    req.socket.remoteAddress ||
+                    clientData.ip;
+      
+      // Use server-detected IP if available, otherwise use client-provided IP
+      const visitData = {
+        ...clientData,
+        ip: Array.isArray(realIP) ? realIP[0] : realIP?.toString()
+      };
+      
       const visit = await storage.createVisit(visitData);
       
       // Send data to Discord webhook

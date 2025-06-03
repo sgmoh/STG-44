@@ -17,12 +17,16 @@ export class MemStorage implements IStorage {
   private visits: Map<number, Visit>;
   private currentUserId: number;
   private currentVisitId: number;
+  private uptimeChecks: Date[];
+  private serverStartTime: Date;
 
   constructor() {
     this.users = new Map();
     this.visits = new Map();
     this.currentUserId = 1;
     this.currentVisitId = 1;
+    this.uptimeChecks = [];
+    this.serverStartTime = new Date();
   }
 
   async getUser(id: number): Promise<User | undefined> {
@@ -78,6 +82,24 @@ export class MemStorage implements IStorage {
 
   async getTotalVisits(): Promise<number> {
     return this.visits.size;
+  }
+
+  async recordUptime(): Promise<void> {
+    this.uptimeChecks.push(new Date());
+    // Keep only last 24 hours of checks
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    this.uptimeChecks = this.uptimeChecks.filter(check => check > twentyFourHoursAgo);
+  }
+
+  async getUptimeStats(): Promise<{ uptime: number; lastCheck: Date }> {
+    const now = new Date();
+    const totalRunTime = now.getTime() - this.serverStartTime.getTime();
+    const uptimeHours = totalRunTime / (1000 * 60 * 60);
+    
+    return {
+      uptime: Math.round(uptimeHours * 100) / 100,
+      lastCheck: this.uptimeChecks.length > 0 ? this.uptimeChecks[this.uptimeChecks.length - 1] : this.serverStartTime
+    };
   }
 }
 
